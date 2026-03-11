@@ -51,6 +51,8 @@ export default function Home() {
         return;
       }
 
+      console.log('📤 Enviando verificación...');
+      
       // Step 2: Call API to verify and assign role
       const response = await fetch('/api/verify', {
         method: 'POST',
@@ -62,12 +64,24 @@ export default function Home() {
         }),
       });
 
+      console.log('📥 Response status:', response.status);
+      
       const text = await response.text();
+      console.log('📥 Response text:', text);
+      
+      if (!text || text.trim() === '') {
+        setError('El servidor no respondió. Intenta de nuevo.');
+        setLoading(false);
+        return;
+      }
+
       let result;
       try {
         result = JSON.parse(text);
+        console.log('📥 Parsed result:', result);
       } catch (parseError) {
-        setError(result || 'Error al procesar la respuesta');
+        console.error('❌ JSON parse error:', parseError);
+        setError('Error al procesar respuesta del servidor');
         setLoading(false);
         return;
       }
@@ -81,6 +95,7 @@ export default function Home() {
         setLoading(false);
       }
     } catch (err: any) {
+      console.error('❌ Error:', err);
       setError(err?.message || 'Error al verificar');
       setLoading(false);
     }
@@ -136,7 +151,7 @@ export default function Home() {
             </div>
             <button
               onClick={handleVerify}
-              className="px-8 py-3 bg-doggy-primary hover:bg-doggy-accent text-white font-bold rounded-lg transition"
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition"
             >
               🎯 Verificar y Obtener Rol
             </button>
@@ -149,7 +164,7 @@ export default function Home() {
         {/* Loading State */}
         {loading && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-doggy-primary mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
             <p className="text-white">Verificando tus holdings de DOGGY...</p>
           </div>
         )}
@@ -160,7 +175,7 @@ export default function Home() {
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-white mb-4">¡Verificación Completa!</h2>
             <p className="text-gray-300 mb-4">
-              Tu rol <span className="font-bold text-doggy-primary">@{assignedRole}</span> ha sido asignado automáticamente.
+              Tu rol <span className="font-bold text-blue-400">@{assignedRole}</span> ha sido asignado automáticamente.
             </p>
             <div className="bg-gray-800 rounded-lg p-4 mb-4">
               <p className="text-gray-400 text-sm">Tu Balance de DOGGY:</p>
@@ -194,19 +209,19 @@ export default function Home() {
             <div className="space-y-3 text-gray-300">
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
                 <span>🦐 Camaroncin</span>
-                <span className="text-doggy-primary font-bold">1K – 900K DOGGY</span>
+                <span className="text-blue-400 font-bold">1K – 900K DOGGY</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
                 <span>💎 Believer</span>
-                <span className="text-doggy-primary font-bold">1M – 3M DOGGY</span>
+                <span className="text-blue-400 font-bold">1M – 3M DOGGY</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
                 <span>🐋 Ballenita</span>
-                <span className="text-doggy-primary font-bold">3M – 6M DOGGY</span>
+                <span className="text-blue-400 font-bold">3M – 6M DOGGY</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
                 <span>🚀 Doggyllonario</span>
-                <span className="text-doggy-primary font-bold">6M+ DOGGY</span>
+                <span className="text-blue-400 font-bold">6M+ DOGGY</span>
               </div>
             </div>
           </div>
@@ -220,7 +235,7 @@ export default function Home() {
           href="https://solscan.io/token/BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-doggy-primary hover:underline"
+          className="text-blue-400 hover:underline"
         >
           Ver DOGGY en Solscan
         </a>
