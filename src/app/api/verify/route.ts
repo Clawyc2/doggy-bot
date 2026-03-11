@@ -14,6 +14,16 @@ const HOLDER_ROLES = [
   { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 100_000_000 },
 ];
 
+// Roles de Burn con IDs directos
+const BURN_ROLES = [
+  { name: 'Bronce', id: '1481095287584985270', min: 10_000, max: 100_000, emoji: '🥉' },
+  { name: 'Plata', id: '1481095408389328957', min: 100_000, max: 1_000_000, emoji: '🥈' },
+  { name: 'Oro', id: '1481095552224723066', min: 1_000_000, max: Infinity, emoji: '🥇' },
+];
+
+// Burn address
+const BURN_ADDRESS = 'Burn111111111111111111111111111111111111111';
+
 // Discord API helper
 async function discordAPI(endpoint: string, method: string = 'GET', body?: any): Promise<any> {
   const url = `https://discord.com/api/v10${endpoint}`;
@@ -38,7 +48,7 @@ async function discordAPI(endpoint: string, method: string = 'GET', body?: any):
   return res.json();
 }
 
-// Get token balance from Solana
+// Get token balance from Solana (EXISTING - DON'T MODIFY)
 async function getTokenBalance(wallet: string, mint: string): Promise<number> {
   try {
     const response = await fetch(RPC_URL, {
@@ -87,6 +97,94 @@ async function getTokenBalance(wallet: string, mint: string): Promise<number> {
   }
 }
 
+// NEW: Get burned tokens for a wallet
+async function getBurnedAmount(wallet: string): Promise<number> {
+  try {
+    const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
+    
+    // Get signatures for this wallet
+    const signaturesResponse = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'doggy-burns',
+        method: 'getSignaturesForAddress',
+        params: [wallet, { limit: 100 }] // Last 100 transactions
+      })
+    });
+
+    const signaturesData = await signaturesResponse.json();
+    
+    if (!signaturesData.result) {
+      return 0;
+    }
+
+    let totalBurned = 0;
+
+    // Check each transaction
+    for (const sig of signaturesData.result) {
+      try {
+        const txResponse = await fetch(RPC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 'doggy-tx',
+            method: 'getTransaction',
+            params: [sig.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]
+          })
+        });
+
+        const txData = await txResponse.json();
+        
+        if (!txData.result || !txData.result.meta) continue;
+
+        // Check if this transaction sent tokens to burn address
+        const postTokenBalances = txData.result.meta.postTokenBalances || [];
+        const preTokenBalances = txData.result.meta.preTokenBalances || [];
+        
+        // Look for transfers to burn address
+        for (let i = 0; i < postTokenBalances.length; i++) {
+          const postBalance = postTokenBalances[i];
+          
+          // Check if this is DOGGY token
+          if (postBalance.mint !== DOGGY_MINT) continue;
+          
+          // Find the corresponding pre-balance
+          const preBalance = preTokenBalances.find((pb: any) => 
+            pb.accountIndex === postBalance.accountIndex
+          );
+          
+          if (!preBalance) continue;
+          
+          // Check if this is the burn address
+          const accountKeys = txData.result.transaction.message.accountKeys;
+          const accountKey = accountKeys[postBalance.accountIndex];
+          
+          if (accountKey === BURN_ADDRESS) {
+            // This is a burn transaction - add the amount
+            const burnedAmount = (preBalance.uiTokenAmount.uiAmount || 0) - (postBalance.uiTokenAmount.uiAmount || 0);
+            if (burnedAmount > 0) {
+              totalBurned += burnedAmount;
+            }
+          }
+        }
+      } catch (e) {
+        // Skip problematic transactions
+        continue;
+      }
+    }
+
+    console.log(`🔥 Total burned: ${totalBurned} DOGGY`);
+    return totalBurned;
+    
+  } catch (error: any) {
+    console.error('Error getting burned amount:', error);
+    return 0; // Return 0 if error - don't break the flow
+  }
+}
+
 // Send message to Discord channel
 async function sendDiscordMessage(channelId: string, content: any): Promise<void> {
   try {
@@ -131,45 +229,79 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Verifying: ${discordId} - ${wallet}`);
 
-    // Get balance
+    // Get holder balance (EXISTING LOGIC - DON'T MODIFY)
     const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
-    const balance = await getTokenBalance(wallet, DOGGY_MINT);
+    const holderBalance = await getTokenBalance(wallet, DOGGY_MINT);
+    console.log(`💎 Holder Balance: ${holderBalance.toLocaleString()} DOGGY`);
 
-    console.log(`💎 Balance: ${balance.toLocaleString()} DOGGY`);
+    // NEW: Get burned amount
+    const burnedBalance = await getBurnedAmount(wallet);
+    console.log(`🔥 Burned Balance: ${burnedBalance.toLocaleString()} DOGGY`);
 
-    // Find matching role
-    let role = null;
+    // Find matching holder role (EXISTING LOGIC)
+    let holderRole = null;
     for (const r of HOLDER_ROLES) {
-      if (balance >= r.min && balance < r.max) {
-        role = r;
+      if (holderBalance >= r.min && holderBalance < r.max) {
+        holderRole = r;
         break;
       }
     }
 
-    if (!role) {
+    // Find matching burn role (NEW)
+    let burnRole = null;
+    if (burnedBalance > 0) {
+      for (const r of BURN_ROLES) {
+        if (burnedBalance >= r.min && burnedBalance < r.max) {
+          burnRole = r;
+          break;
+        }
+      }
+    }
+
+    // Check if user qualifies for ANY role
+    if (!holderRole && !burnRole) {
       return NextResponse.json({ 
         success: false,
-        error: `Necesitas mínimo 1,000 DOGGY. Tienes: ${balance.toLocaleString()} DOGGY`,
-        balance 
+        error: `Necesitas mínimo 1,000 DOGGY en holdings o haber quemado 10,000 DOGGY. Tienes: ${holderBalance.toLocaleString()} en holdings y ${burnedBalance.toLocaleString()} quemados.`,
+        holderBalance,
+        burnedBalance
       }, { status: 400 });
     }
 
-    // Remove old roles
+    // Remove old holder roles (EXISTING LOGIC)
     for (const r of HOLDER_ROLES) {
       try {
         await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${r.id}`, 'DELETE');
-        console.log(`❌ Removed ${r.name}`);
+        console.log(`❌ Removed holder role ${r.name}`);
       } catch (e) {
         // Ignore
       }
     }
 
-    // Add new role
-    await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${role.id}`, 'PUT');
-    console.log(`✅ Assigned ${role.name} to ${discordId}`);
+    // Remove old burn roles (NEW)
+    for (const r of BURN_ROLES) {
+      try {
+        await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${r.id}`, 'DELETE');
+        console.log(`❌ Removed burn role ${r.name}`);
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    // Assign holder role if applicable (EXISTING LOGIC)
+    if (holderRole) {
+      await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${holderRole.id}`, 'PUT');
+      console.log(`✅ Assigned holder role ${holderRole.name} to ${discordId}`);
+    }
+
+    // Assign burn role if applicable (NEW)
+    if (burnRole) {
+      await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${burnRole.id}`, 'PUT');
+      console.log(`✅ Assigned burn role ${burnRole.name} to ${discordId}`);
+    }
 
     // Send confirmation message to channel if channelId provided
-    if (channelId) {
+    if (channelId && (holderRole || burnRole)) {
       const roleEmojis: Record<string, string> = {
         'Camaroncin': '🦐',
         'Believer': '💎',
@@ -177,23 +309,38 @@ export async function POST(request: NextRequest) {
         'Doggyllonario': '🚀',
       };
       
+      const rolesText = [];
+      if (holderRole) {
+        rolesText.push(`${roleEmojis[holderRole.name] || '⭐'} **${holderRole.name}** (Holder)`);
+      }
+      if (burnRole) {
+        rolesText.push(`${burnRole.emoji} **${burnRole.name}** (Burner)`);
+      }
+      
+      const fields = [
+        {
+          name: '💎 Holdings',
+          value: `${holderBalance.toLocaleString()} DOGGY`,
+          inline: true
+        },
+        {
+          name: '🔥 Burned',
+          value: `${burnedBalance.toLocaleString()} DOGGY`,
+          inline: true
+        },
+        {
+          name: '🏆 Roles',
+          value: rolesText.join('\n'),
+          inline: false
+        }
+      ];
+      
       await sendDiscordMessage(channelId, {
         embeds: [{
-          title: '✅ Rol Asignado',
-          description: `¡<@${discordId}> ha verificado sus holdings!`,
+          title: '✅ Verificación Completa',
+          description: `¡<@${discordId}> ha verificado sus tokens!`,
           color: 0x00AE86,
-          fields: [
-            {
-              name: '💎 Balance',
-              value: `${balance.toLocaleString()} DOGGY`,
-              inline: true
-            },
-            {
-              name: '🏆 Rol',
-              value: `${roleEmojis[role.name] || '⭐'} **${role.name}**`,
-              inline: true
-            }
-          ],
+          fields: fields,
           timestamp: new Date().toISOString(),
           footer: {
             text: 'Doggy BOT • Verificación automática'
@@ -205,9 +352,11 @@ export async function POST(request: NextRequest) {
     // Return success response
     return NextResponse.json({ 
       success: true,
-      role: role.name,
-      balance: balance,
-      message: `¡Rol ${role.name} asignado!`
+      holderRole: holderRole?.name || null,
+      burnRole: burnRole?.name || null,
+      holderBalance: holderBalance,
+      burnedBalance: burnedBalance,
+      message: `¡Roles asignados!`
     }, { status: 200 });
 
   } catch (error: any) {
