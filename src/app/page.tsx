@@ -45,7 +45,7 @@ export default function Home() {
       let signature: Uint8Array;
       try {
         signature = await signMessage(message);
-      } catch (signError: any) {
+      } catch (signError: {
         setError("Firma rechazada. Necesitas firmar el mensaje para continuar.");
         setLoading(false);
         return;
@@ -62,7 +62,15 @@ export default function Home() {
         }),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch (parseError) {
+        setError(result || 'Error al procesar la respuesta');
+        setLoading(false);
+        return;
+      }
 
       if (response.ok && result.success) {
         setSuccess(true);
@@ -70,11 +78,10 @@ export default function Home() {
         setBalance(result.balance);
       } else {
         setError(result.error || 'Error en la verificación');
+        setLoading(false);
       }
-    } catch (err: any) {
-      console.error("Error:", err);
-      setError(err.message || "Error al verificar");
-    } finally {
+    } catch (err) {
+      setError(err.message || 'Error al verificar');
       setLoading(false);
     }
   }, [publicKey, discordId, signMessage]);
@@ -134,7 +141,7 @@ export default function Home() {
               🎯 Verificar y Obtener Rol
             </button>
             <p className="text-gray-500 text-sm mt-4">
-              Conectada: {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}
+              Connected: {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}
             </p>
           </div>
         )}
@@ -201,11 +208,6 @@ export default function Home() {
                 <span>🚀 Doggyllonario</span>
                 <span className="text-doggy-primary font-bold">6M+ DOGGY</span>
               </div>
-            </div>
-            <div className="mt-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-              <p className="text-blue-400 text-sm">
-                📌 Mínimo requerido: 1,000 DOGGY para obtener el primer rol.
-              </p>
             </div>
           </div>
         )}
