@@ -4,10 +4,11 @@ const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN!;
 const GUILD_ID = process.env.DISCORD_GUILD_ID!;
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
+// Roles exactos de Discord
 const ROLES = [
-  { name: 'DoggyHolder', min: 1_000, max: 100_000 },
-  { name: 'DoggyOG', min: 100_000, max: 500_000 },
-  { name: 'DoggyMaxi', min: 500_000, max: Infinity },
+  { name: 'Doggy Holder', min: 1_000, max: 100_000 },
+  { name: 'Doggy OG', min: 100_000, max: 500_000 },
+  { name: 'Doggy Maxi', min: 500_000, max: 1_000_000 },
 ];
 
 // Discord API helper
@@ -58,7 +59,7 @@ async function getTokenBalance(wallet: string, mint: string): Promise<number> {
     return 0;
   } catch (error) {
     console.error('Error getting balance:', error);
-    throw new Error('Failed to verify balance. Please try again in a moment.');
+    throw new Error('Error al verificar balance. Intenta de nuevo en unos momentos.');
   }
 }
 
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (!wallet || !discordId) {
       return NextResponse.json({ 
-        error: 'Missing wallet or discordId' 
+        error: 'Falta wallet o discordId' 
       }, { status: 400 });
     }
 
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (!targetRole) {
       return NextResponse.json({ 
-        error: `Rol "${role}" no encontrado en Discord` 
+        error: `Rol "${role}" no encontrado en Discord. Roles disponibles: ${roles.map((r: any) => r.name).join(', ')}` 
       }, { status: 404 });
     }
 

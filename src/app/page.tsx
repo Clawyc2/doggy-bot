@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { verifyTokenHoldings, formatTokenAmount } from "@/lib/tokenVerification";
 
 export default function Home() {
   const { publicKey, connected, signMessage } = useWallet();
@@ -37,10 +36,10 @@ export default function Home() {
     try {
       // Step 1: Sign message to prove wallet ownership
       const message = new TextEncoder().encode(
-        `Verify DOGGY holdings for Discord role\n` +
+        `Verificar holdings de DOGGY para rol en Discord\n` +
         `Discord ID: ${discordId}\n` +
         `Timestamp: ${Date.now()}\n` +
-        `This signature only proves wallet ownership. No transactions will be made.`
+        `Esta firma solo prueba propiedad de la wallet. No se realizarán transacciones.`
       );
 
       let signature: Uint8Array;
@@ -86,10 +85,10 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">
-            🐕 Doggy Verification
+            🐕 Verificación DOGGY
           </h1>
           <p className="text-gray-400 text-lg">
-            Verify your DOGGY holdings to unlock Discord roles
+            Verifica tus holdings de DOGGY para desbloquear roles en Discord
           </p>
         </div>
 
@@ -97,7 +96,7 @@ export default function Home() {
         {!verifying && (
           <div className="bg-red-900/20 backdrop-blur-sm rounded-2xl p-8 border border-red-700 text-center">
             <p className="text-red-400">
-              ⚠️ No Discord ID detected. Please use the "Verify" button from Discord.
+              ⚠️ No se detectó Discord ID. Usa el botón "Verificar" desde Discord.
             </p>
           </div>
         )}
@@ -105,8 +104,8 @@ export default function Home() {
         {/* Step 1: Connect Wallet */}
         {verifying && !connected && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
-            <h3 className="text-xl font-bold text-white mb-2">Step 1: Connect Wallet</h3>
-            <p className="text-gray-400 mb-6">Connect your Solana wallet to continue</p>
+            <h3 className="text-xl font-bold text-white mb-2">Paso 1: Conectar Wallet</h3>
+            <p className="text-gray-400 mb-6">Conecta tu wallet de Solana para continuar</p>
             <div className="flex justify-center mb-6 relative z-50">
               <WalletMultiButton />
             </div>
@@ -119,23 +118,23 @@ export default function Home() {
         {/* Step 2: Sign & Verify */}
         {verifying && connected && !loading && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
-            <h3 className="text-xl font-bold text-white mb-2">Step 2: Verify Holdings</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Paso 2: Verificar Holdings</h3>
             <p className="text-gray-400 mb-6">
-              Click the button below to sign a message and verify your DOGGY balance.
+              Haz clic en el botón para firmar un mensaje y verificar tu balance de DOGGY.
             </p>
             <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-6">
               <p className="text-yellow-400 text-sm">
-                🔒 You will be asked to sign a message. This only proves wallet ownership. No transactions will be made.
+                🔒 Se te pedirá firmar un mensaje. Esto solo prueba propiedad de la wallet. No se realizarán transacciones.
               </p>
             </div>
             <button
               onClick={handleVerify}
               className="px-8 py-3 bg-doggy-primary hover:bg-doggy-accent text-white font-bold rounded-lg transition"
             >
-              🎯 Verify & Get Role
+              🎯 Verificar y Obtener Rol
             </button>
             <p className="text-gray-500 text-sm mt-4">
-              Connected: {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}
+              Conectada: {publicKey?.toBase58().slice(0, 8)}...{publicKey?.toBase58().slice(-8)}
             </p>
           </div>
         )}
@@ -144,7 +143,7 @@ export default function Home() {
         {loading && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-doggy-primary mx-auto mb-4"></div>
-            <p className="text-white">Verifying your DOGGY holdings...</p>
+            <p className="text-white">Verificando tus holdings de DOGGY...</p>
           </div>
         )}
 
@@ -152,16 +151,16 @@ export default function Home() {
         {success && (
           <div className="bg-green-900/20 backdrop-blur-sm rounded-2xl p-8 border border-green-700 text-center mb-6">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-white mb-4">¡Verification Complete!</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">¡Verificación Completa!</h2>
             <p className="text-gray-300 mb-4">
-              Your role <span className="font-bold text-doggy-primary">@{assignedRole}</span> has been assigned automatically.
+              Tu rol <span className="font-bold text-doggy-primary">@{assignedRole}</span> ha sido asignado automáticamente.
             </p>
             <div className="bg-gray-800 rounded-lg p-4 mb-4">
-              <p className="text-gray-400 text-sm">Your DOGGY Balance:</p>
+              <p className="text-gray-400 text-sm">Tu Balance de DOGGY:</p>
               <p className="text-3xl font-bold text-white">{balance.toLocaleString()} DOGGY</p>
             </div>
             <p className="text-gray-400 text-sm">
-              ✅ You can close this page and return to Discord.
+              ✅ Puedes cerrar esta página y volver a Discord.
             </p>
           </div>
         )}
@@ -174,7 +173,7 @@ export default function Home() {
               onClick={handleVerify}
               className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
             >
-              Try Again
+              Intentar de Nuevo
             </button>
           </div>
         )}
@@ -183,20 +182,20 @@ export default function Home() {
         {verifying && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
             <h3 className="text-xl font-bold text-white mb-4">
-              💎 Available Roles
+              💎 Roles Disponibles
             </h3>
             <div className="space-y-3 text-gray-300">
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
-                <span>• DoggyHolder</span>
+                <span>• Doggy Holder</span>
                 <span className="text-doggy-primary font-bold">1K - 100K DOGGY</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
-                <span>• DoggyOG</span>
+                <span>• Doggy OG</span>
                 <span className="text-doggy-primary font-bold">100K - 500K DOGGY</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-700/50 rounded">
-                <span>• DoggyMaxi</span>
-                <span className="text-doggy-primary font-bold">500K+ DOGGY</span>
+                <span>• Doggy Maxi</span>
+                <span className="text-doggy-primary font-bold">500K - 1M DOGGY</span>
               </div>
             </div>
           </div>
@@ -205,14 +204,14 @@ export default function Home() {
 
       {/* Footer */}
       <div className="mt-12 text-gray-500 text-sm">
-        Created with ❤️ by Clawy •{" "}
+        Creado con ❤️ por Clawy •{" "}
         <a
           href="https://solscan.io/token/BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump"
           target="_blank"
           rel="noopener noreferrer"
           className="text-doggy-primary hover:underline"
         >
-          View DOGGY on Solscan
+          Ver DOGGY en Solscan
         </a>
       </div>
     </div>
