@@ -10,59 +10,73 @@ export default function VerifyPage() {
   const [verification, setVerification] = useState<TokenVerification | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [signed, setSigned] = useState(false);
-  const [signing, setSigning] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [confirmCode, setConfirmCode] = useState('');
+  const [assignedRole, setAssignedRole] = useState('');
+  
+  // Get code and discord from URL
+  const [code, setCode] = useState<string>('');
+  const [discordId, setDiscordId] = useState<string>('');
 
-  const handleSignMessage = useCallback(async () => {
-    if (!publicKey || !signMessage) {
-      setError("Esta wallet no soporta firma de mensajes. Intenta con Phantom o Solflare.");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setCode(params.get('code') || '');
+    setDiscordId(params.get('discord') || '');
+  }, []);
+
+  const handleVerify = useCallback(async () => {
+    if (!publicKey) {
+      setError("Wallet no conectada");
       return;
     }
 
-    setSigning(true);
+    if (!code) {
+      setError("Código de verificación no encontrado. Inicia el proceso desde Discord.");
+      return;
+    }
+
+    setLoading(true);
     setError(null);
 
     try {
-      // Mensaje claro y transparente - SOLO VERIFICA PROPIEDAD
-      const message = `Verificación Doggy BOT
+      // Verify holdings locally first
+      const holdingsResult = await verifyTokenHoldings(publicKey.toBase58());
+      setVerification(holdingsResult);
 
-Firma este mensaje para demostrar que eres el propietario de esta wallet.
-
-⚠️ Esta firma NO autoriza ninguna transacción ni gasto de fondos.
-⚠️ Solo verifica que tienes acceso a esta wallet.
-⚠️ Es seguro y gratuito.
-
-Timestamp: ${Date.now()}`;
-      
-      const encodedMessage = new TextEncoder().encode(message);
-      const signature = await signMessage(encodedMessage);
-
-      // Firma exitosa
-      setSigned(true);
-      
-      // Ahora sí verificamos los holdings
-      setLoading(true);
-      const result = await verifyTokenHoldings(publicKey.toBase58());
-      setVerification(result);
-    } catch (err: any) {
-      console.error("Error al firmar:", err);
-      if (err.message?.includes("User rejected")) {
-        setError("Firma rechazada. Debes firmar el mensaje para verificar tu wallet.");
-      } else {
-        setError(err.message || "Error al firmar el mensaje");
+      if (!holdingsResult.isHolder) {
+        setError("No tienes suficientes DOGGY para obtener un rol. Mínimo: 1,000 DOGGY");
+        setLoading(false);
+        return;
       }
+
+      // Send to API
+      const response = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          wallet: publicKey.toBase58(),
+          discordId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setSuccess(true);
+        setConfirmCode(result.confirmCode);
+        setAssignedRole(result.role);
+      } else {
+        setError(result.message || result.error || 'Error en la verificación');
+      }
+
+    } catch (err: any) {
+      console.error("Error:", err);
+      setError(err.message || "Error al verificar");
     } finally {
-      setSigning(false);
       setLoading(false);
     }
-  }, [publicKey, signMessage]);
-
-  // Reset cuando cambia la wallet
-  useEffect(() => {
-    setSigned(false);
-    setVerification(null);
-    setError(null);
-  }, [publicKey?.toBase58()]);
+  }, [publicKey, code, discordId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-8">
@@ -77,45 +91,84 @@ Timestamp: ${Date.now()}`;
           </p>
         </div>
 
-        {/* Wallet Connection */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-6 relative z-50">
-          <div className="flex justify-center mb-6">
-            <WalletMultiButton />
-          </div>
-
-          {publicKey && (
-            <div className="text-center text-gray-400 text-sm">
-              Conectado: {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
+        {/* Success State */}
+        {success && (
+          <div className="space-y-4">
+            <div className="bg-green-900/20 backdrop-blur-sm rounded-2xl p-8 border border-green-700 text-center">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold text-white mb-4">¡Verificación Exitosa!</h2>
+              <p className="text-gray-300 mb-6">
+                Tu wallet ha sido verificada y calificas para el rol:
+              </p>
+              <div className="text-4xl font-bold text-doggy-primary mb-6">
+                @{assignedRole}
+              </div>
+              <div className="bg-gray-800 rounded-lg p-6 mb-6">
+                <p className="text-gray-400 text-sm mb-2">Tu código de confirmación:</p>
+                <div className="text-4xl font-mono font-bold text-white tracking-wider">
+                  {confirmCode}
+                </div>
+              </div>
+              <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 text-left">
+                <p className="text-blue-400 font-bold mb-2">📋 Siguientes pasos:</p>
+                <ol className="text-gray-300 space-y-2">
+                  <li>1. Copia el código de arriba</li>
+                  <li>2. Vuelve a Discord</li>
+                  <li>3. Usa el comando: <code className="bg-gray-800 px-2 py-1 rounded">/confirmar {confirmCode}</code></li>
+                  <li>4. ¡Listo! Recibirás tu rol automáticamente</li>
+                </ol>
+              </div>
             </div>
-          )}
-        </div>
+            
+            <div className="text-center">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(confirmCode);
+                  alert('¡Código copiado!');
+                }}
+                className="px-8 py-3 bg-doggy-primary hover:bg-doggy-accent text-white font-bold rounded-lg transition"
+              >
+                📋 Copiar Código
+              </button>
+            </div>
+          </div>
+        )}
 
-        {/* Sign Message Button */}
-        {connected && !signed && (
+        {/* Wallet Connection */}
+        {!success && (
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-6 relative z-50">
+            <div className="flex justify-center mb-6">
+              <WalletMultiButton />
+            </div>
+
+            {publicKey && (
+              <div className="text-center text-gray-400 text-sm">
+                Conectado: {publicKey.toBase58().slice(0, 8)}...{publicKey.toBase58().slice(-8)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Verify Button */}
+        {connected && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-6">
             <div className="text-center">
               <p className="text-gray-300 mb-6">
-                Wallet conectada. Ahora firma un mensaje para verificar que eres el dueño.
+                Tu wallet está conectada. Haz click en "Verificar" para revisar tus holdings.
               </p>
               
               <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4 mb-6">
-                <p className="text-yellow-400 text-sm mb-2">
-                  ⚠️ <strong>¿Qué hace esta firma?</strong>
+                <p className="text-yellow-400 text-sm">
+                  ⚠️ Este proceso solo leerá tu balance de DOGGY. No se realizarán transacciones ni se solicitarán permisos de gasto.
                 </p>
-                <ul className="text-yellow-300 text-sm text-left space-y-1">
-                  <li>• Demuestra que eres dueño de esta wallet</li>
-                  <li>• <strong>NO</strong> autoriza ninguna transacción</li>
-                  <li>• <strong>NO</strong> gasta nada (es gratuito)</li>
-                  <li>• Solo verificamos tus holdings de DOGGY</li>
-                </ul>
               </div>
 
               <button
-                onClick={handleSignMessage}
-                disabled={signing}
-                className="px-8 py-3 bg-doggy-primary hover:bg-orange-500 text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                onClick={handleVerify}
+                disabled={loading || !code}
+                className="px-8 py-3 bg-doggy-primary hover:bg-doggy-accent text-white font-bold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {signing ? "Abre tu wallet para firmar..." : "🔐 Firmar mensaje para verificar"}
+                {loading ? "Verificando..." : !code ? "Código no encontrado" : "🔍 Verificar Holdings"}
               </button>
             </div>
           </div>
@@ -123,7 +176,7 @@ Timestamp: ${Date.now()}`;
 
         {/* Loading State */}
         {loading && (
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-doggy-primary mx-auto mb-4"></div>
             <p className="text-white">Verificando tus holdings de DOGGY...</p>
           </div>
@@ -131,10 +184,10 @@ Timestamp: ${Date.now()}`;
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-900/20 backdrop-blur-sm rounded-2xl p-8 border border-red-700 text-center">
-            <p className="text-red-400 mb-4">{error}</p>
+          <div className="bg-red-900/20 backdrop-blur-sm rounded-2xl p-8 border border-red-700 text-center mb-6">
+            <p className="text-red-400">{error}</p>
             <button
-              onClick={handleSignMessage}
+              onClick={handleVerify}
               className="mt-4 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
             >
               Intentar de nuevo
@@ -142,90 +195,8 @@ Timestamp: ${Date.now()}`;
           </div>
         )}
 
-        {/* Verification Results */}
-        {verification && signed && !loading && (
-          <div className="space-y-4">
-            {/* Success Message */}
-            <div className="bg-green-900/20 backdrop-blur-sm rounded-2xl p-6 border border-green-700 text-center">
-              <p className="text-green-400 text-lg">✅ Wallet verificada correctamente</p>
-            </div>
-
-            {/* Holdings Card */}
-            <div className={`backdrop-blur-sm rounded-2xl p-8 border ${
-              verification.isHolder 
-                ? "bg-green-900/20 border-green-700" 
-                : "bg-gray-800/50 border-gray-700"
-            }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Holdings</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatTokenAmount(verification.holding)} DOGGY
-                  </p>
-                </div>
-                {verification.isHolder ? (
-                  <div className="text-5xl">✅</div>
-                ) : (
-                  <div className="text-5xl">❌</div>
-                )}
-              </div>
-              {verification.isHolder && (
-                <p className="text-green-400 mt-4">
-                  ✨ ¡Calificas para el rol HOLDER!
-                </p>
-              )}
-            </div>
-
-            {/* Burns Card */}
-            <div className={`backdrop-blur-sm rounded-2xl p-8 border ${
-              verification.hasBurned 
-                ? "bg-orange-900/20 border-orange-700" 
-                : "bg-gray-800/50 border-gray-700"
-            }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm mb-1">Quemados</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatTokenAmount(verification.burned)} DOGGY
-                  </p>
-                </div>
-                {verification.hasBurned ? (
-                  <div className="text-5xl">🔥</div>
-                ) : (
-                  <div className="text-5xl">⚪</div>
-                )}
-              </div>
-              {verification.hasBurned && (
-                <p className="text-orange-400 mt-4">
-                  🔥 ¡Calificas para el rol BURNER!
-                </p>
-              )}
-            </div>
-
-            {/* Discord Instructions */}
-            {(verification.isHolder || verification.hasBurned) && (
-              <div className="bg-blue-900/20 backdrop-blur-sm rounded-2xl p-8 border border-blue-700">
-                <h3 className="text-xl font-bold text-white mb-4">
-                  📋 Siguientes pasos
-                </h3>
-                <ol className="text-gray-300 space-y-2">
-                  <li>1. Has verificado la propiedad de esta wallet ✅</li>
-                  <li>2. Copia tu dirección de wallet abajo</li>
-                  <li>3. Usa <code className="bg-gray-800 px-2 py-1 rounded">/verify</code> en Discord</li>
-                  <li>4. Pega tu dirección de wallet cuando te lo pida</li>
-                </ol>
-                <div className="mt-4 p-4 bg-gray-800 rounded-lg">
-                  <code className="text-doggy-primary break-all">
-                    {publicKey?.toBase58()}
-                  </code>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Instructions for non-connected users */}
-        {!connected && (
+        {!connected && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700">
             <h3 className="text-xl font-bold text-white mb-4">
               Cómo funciona
@@ -233,26 +204,21 @@ Timestamp: ${Date.now()}`;
             <ol className="text-gray-300 space-y-3">
               <li className="flex items-start">
                 <span className="bg-doggy-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">1</span>
-                Conecta tu wallet de Solana (Phantom, Solflare)
+                Conecta tu wallet de Solana
               </li>
               <li className="flex items-start">
                 <span className="bg-doggy-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">2</span>
-                Firma un mensaje para verificar propiedad
-              </li>
-              <li className="flex items-start">
-                <span className="bg-doggy-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">3</span>
                 Verificamos tus holdings de DOGGY
               </li>
               <li className="flex items-start">
+                <span className="bg-doggy-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">3</span>
+                Recibes un código de confirmación
+              </li>
+              <li className="flex items-start">
                 <span className="bg-doggy-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-3 mt-0.5">4</span>
-                Obtén acceso a roles en Discord
+                Úsalo en Discord para obtener tu rol
               </li>
             </ol>
-            <div className="mt-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
-              <p className="text-blue-400 text-sm">
-                💡 <strong>¿Por qué firmar?</strong> La firma demuestra que tienes acceso a la wallet sin revelar tu private key. Es 100% seguro y gratuito.
-              </p>
-            </div>
           </div>
         )}
       </div>
