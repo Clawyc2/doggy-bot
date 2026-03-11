@@ -12,13 +12,16 @@ interface Props {
 }
 
 export const WalletContextProvider: FC<Props> = ({ children }) => {
-  // Use Helius RPC for better reliability (same as backend)
-  // Fallback to public RPC if env var not set
-  const endpoint = useMemo(() => 
-    process.env.NEXT_PUBLIC_RPC_URL || 
-    'https://mainnet.helius-rpc.com/?api-key=b534340e-8d88-4146-9bef-bb2140de44d7',
-    []
-  );
+  // Use RPC from environment variable
+  // NEXT_PUBLIC_RPC_URL must be set in Vercel environment variables
+  const endpoint = useMemo(() => {
+    const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
+    if (!rpcUrl) {
+      console.error('❌ NEXT_PUBLIC_RPC_URL not configured');
+      return 'https://api.mainnet-beta.solana.com'; // Fallback to public RPC
+    }
+    return rpcUrl;
+  }, []);
   
   const wallets = useMemo(
     () => [

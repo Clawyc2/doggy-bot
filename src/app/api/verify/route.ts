@@ -3,8 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN!;
 const GUILD_ID = process.env.DISCORD_GUILD_ID!;
 
-// Use Helius RPC for better reliability
-const RPC_URL = process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=b534340e-8d88-4146-9bef-bb2140de44d7';
+// Use Helius RPC from environment variable
+const RPC_URL = process.env.SOLANA_RPC_URL || process.env.HELIUS_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+if (!process.env.SOLANA_RPC_URL && !process.env.HELIUS_RPC_URL) {
+  console.warn('⚠️ SOLANA_RPC_URL not configured, using public RPC (rate limited)');
+}
 
 // Roles de Holder con IDs directos
 const HOLDER_ROLES = [
