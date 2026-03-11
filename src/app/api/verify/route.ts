@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN!;
 const GUILD_ID = process.env.DISCORD_GUILD_ID!;
-const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+// Use multiple RPC endpoints as fallback
+const RPC_ENDPOINTS = [
+  process.env.SOLANA_RPC_URL,
+  process.env.HELIUS_RPC_URL,
+  'https://api.mainnet-beta.solana.com',
+  'https://solana-api.projectserum.com',
+].filter(Boolean) as string[];
 
 // Roles de Holder con IDs directos
 const HOLDER_ROLES = [
@@ -26,100 +33,94 @@ async function discordAPI(endpoint: string, method: string = 'GET'): Promise<any
   
   if (!res.ok) {
     const errorText = await res.text();
-    console.error(`Discord API error ${res.status}:`, errorText);
-    throw new Error(`Discord API error: ${res.status}`);
+    throw new Error(`Discord ${res.status}: ${errorText}`);
   }
   
   return res.json();
 }
 
-// Get token balance from Solana RPC
+// Get token balance with RPC fallback
 async function getTokenBalance(wallet: string, mint: string): Promise<number> {
-  try {
-    console.log(`📡 Querying RPC: ${RPC_URL}`);
-    
-    const response = await fetch(RPC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 'doggy-verify',
-        method: 'getTokenAccountsByOwner',
-        params: [
-          wallet,
-          { mint: mint },
-          { encoding: 'jsonParsed' }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`RPC error: ${response.status}`);
-    }
-
-    const text = await response.text();
-    console.log('📦 RPC response length:', text.length);
-    
-    if (!text || text.trim() === '') {
-      throw new Error('RPC response is empty');
-    }
-
-    let data;
+  const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
+  
+  for (const rpcUrl of RPC_ENDPOINTS) {
     try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error('❌ JSON parse error. Response preview:', text.substring(0, 200));
-      throw new Error('Invalid JSON from RPC');
-    }
-    
-    if (data.error) {
-      console.error('❌ RPC error:', data.error);
-      throw new Error(data.error.message || 'RPC error');
-    }
-    
-    if (data.result && data.result.value && data.result.value.length > 0) {
-      const accountData = data.result.value[0].account.data;
-      if (accountData && accountData.parsed && accountData.parsed.info) {
-        const balance = accountData.parsed.info.tokenAmount.uiAmount;
-        return balance || 0;
+      console.log(`📡 Trying RPC: ${rpcUrl}`);
+      
+      const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 'doggy-verify',
+          method: 'getTokenAccountsByOwner',
+          params: [
+            wallet,
+            { mint: mint },
+            { encoding: 'jsonParsed' }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        console.log(`❌ RPC ${rpcUrl} returned ${response.status}`);
+        continue;
       }
+
+      const text = await response.text();
+      
+      if (!text || text.trim() === '' || text.trim() === '<') {
+        console.log(`❌ RPC ${rpcUrl} returned empty/invalid response`);
+        continue;
+      }
+
+      const data = JSON.parse(text);
+      
+      if (data.error) {
+        console.log(`❌ RPC ${rpcUrl} error:`, data.error);
+        continue;
+      }
+      
+      if (data.result && data.result.value && data.result.value.length > 0) {
+        const accountData = data.result.value[0].account.data;
+        if (accountData && accountData.parsed && accountData.parsed.info) {
+          const balance = accountData.parsed.info.tokenAmount.uiAmount;
+          console.log(`✅ Got balance from ${rpcUrl}: ${balance}`);
+          return balance || 0;
+        }
+      }
+      
+      // No tokens found but RPC worked
+      return 0;
+      
+    } catch (error: any) {
+      console.log(`❌ RPC ${rpcUrl} failed:`, error.message);
+      continue;
     }
-    
-    return 0;
-  } catch (error: any) {
-    console.error('❌ Error getting balance:', error);
-    throw new Error('Error al verificar balance. Intenta de nuevo.');
   }
+  
+  throw new Error('Todos los RPCs fallaron. Intenta de nuevo en unos momentos.');
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Log environment check
-    console.log('🔧 Environment check:', {
-      DISCORD_TOKEN: DISCORD_TOKEN ? `✅ ${DISCORD_TOKEN.substring(0, 10)}...` : '❌ Missing',
-      GUILD_ID: GUILD_ID || '❌ Missing',
-      RPC_URL: RPC_URL,
-    });
+    console.log('🚀 Verify endpoint called');
     
-    // Check environment variables
+    // Check environment
     if (!DISCORD_TOKEN || !GUILD_ID) {
+      console.error('❌ Missing env vars');
       return NextResponse.json({ 
-        error: 'Server configuration error. Contact admin.',
-        details: 'Missing Discord credentials'
+        error: 'Server misconfigured. Contact admin.',
+        missing: {
+          DISCORD_TOKEN: !DISCORD_TOKEN,
+          GUILD_ID: !GUILD_ID,
+        }
       }, { status: 500 });
     }
 
-    // Parse request body
-    let body;
-    try {
-      body = await request.json();
-    } catch (e) {
-      return NextResponse.json({ 
-        error: 'Invalid request body' 
-      }, { status: 400 });
-    }
-    
-    const { wallet, discordId, signature } = body;
+    // Parse body
+    const body = await request.json();
+    const { wallet, discordId } = body;
 
     if (!wallet || !discordId) {
       return NextResponse.json({ 
@@ -129,13 +130,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔍 Verifying: ${discordId} - ${wallet}`);
 
-    // Verify holdings on-chain
+    // Get balance
     const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
     const balance = await getTokenBalance(wallet, DOGGY_MINT);
 
     console.log(`💎 Balance: ${balance.toLocaleString()} DOGGY`);
 
-    // Determine role based on holdings
+    // Find matching role
     let role = null;
     for (const r of HOLDER_ROLES) {
       if (balance >= r.min && balance < r.max) {
@@ -151,19 +152,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Remove old holder roles
+    // Remove old roles
     for (const r of HOLDER_ROLES) {
       try {
         await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${r.id}`, 'DELETE');
-        console.log(`❌ Removed role ${r.name}`);
+        console.log(`❌ Removed ${r.name}`);
       } catch (e) {
-        // Ignore if user doesn't have the role
+        // Ignore
       }
     }
 
     // Add new role
     await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${role.id}`, 'PUT');
-    console.log(`✅ Role ${role.name} assigned to ${discordId}`);
+    console.log(`✅ Assigned ${role.name} to ${discordId}`);
 
     return NextResponse.json({ 
       success: true,
@@ -173,9 +174,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('❌ Error in verify:', error);
+    console.error('❌ Verify error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Internal server error' 
+      error: error.message || 'Internal error' 
     }, { status: 500 });
   }
 }
