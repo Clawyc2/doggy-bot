@@ -355,7 +355,6 @@ export default function Home() {
 
       {/* Footer */}
       <div className="mt-12 text-gray-500 text-sm text-center">
-        Creado con ❤️ por Clawy •{' '}
         <a
           href="https://solscan.io/token/BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump"
           target="_blank"
