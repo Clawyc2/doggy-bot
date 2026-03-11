@@ -6,8 +6,8 @@ import { WalletContextProvider } from "@/components/WalletContextProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Doggy Holder Verification",
-  description: "Verify your Doggy token holdings and burns",
+  title: "Doggy BOT - Verificación de Holders",
+  description: "Verifica tus holdings de DOGGY para desbloquear roles en Discord",
 };
 
 export default function RootLayout({
