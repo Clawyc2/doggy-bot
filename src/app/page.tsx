@@ -211,7 +211,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">
-            🐕 Verificación DOGGY
+            Verificación DOGGY
           </h1>
           <p className="text-gray-400 text-lg">
             Verifica tus holdings de DOGGY para desbloquear roles en Discord
@@ -258,7 +258,7 @@ export default function Home() {
                 <div className="text-center">
                   <p className="text-gray-400 text-sm mb-2">Tu Balance de DOGGY:</p>
                   <p className="text-5xl font-bold text-white mb-4">
-                    {balance.toLocaleString()} 🐕
+                    {balance.toLocaleString()} DOGGY
                   </p>
                   
                   {role ? (
