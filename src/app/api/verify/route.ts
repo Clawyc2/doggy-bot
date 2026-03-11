@@ -185,15 +185,6 @@ async function getBurnedAmount(wallet: string): Promise<number> {
   }
 }
 
-// Send message to Discord channel
-async function sendDiscordMessage(channelId: string, content: any): Promise<void> {
-  try {
-    await discordAPI(`/channels/${channelId}/messages`, 'POST', content);
-  } catch (error) {
-    console.error('Error sending Discord message:', error);
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Verify endpoint called');
@@ -298,55 +289,6 @@ export async function POST(request: NextRequest) {
     if (burnRole) {
       await discordAPI(`/guilds/${GUILD_ID}/members/${discordId}/roles/${burnRole.id}`, 'PUT');
       console.log(`✅ Assigned burn role ${burnRole.name} to ${discordId}`);
-    }
-
-    // Send confirmation message to channel if channelId provided
-    if (channelId && (holderRole || burnRole)) {
-      const roleEmojis: Record<string, string> = {
-        'Camaroncin': '🦐',
-        'Believer': '💎',
-        'Ballenita': '🐋',
-        'Doggyllonario': '🚀',
-      };
-      
-      const rolesText = [];
-      if (holderRole) {
-        rolesText.push(`${roleEmojis[holderRole.name] || '⭐'} **${holderRole.name}** (Holder)`);
-      }
-      if (burnRole) {
-        rolesText.push(`${burnRole.emoji} **${burnRole.name}** (Burner)`);
-      }
-      
-      const fields = [
-        {
-          name: '💎 Holdings',
-          value: `${holderBalance.toLocaleString()} DOGGY`,
-          inline: true
-        },
-        {
-          name: '🔥 Burned',
-          value: `${burnedBalance.toLocaleString()} DOGGY`,
-          inline: true
-        },
-        {
-          name: '🏆 Roles',
-          value: rolesText.join('\n'),
-          inline: false
-        }
-      ];
-      
-      await sendDiscordMessage(channelId, {
-        embeds: [{
-          title: '✅ Verificación Completa',
-          description: `¡<@${discordId}> ha verificado sus tokens!`,
-          color: 0x00AE86,
-          fields: fields,
-          timestamp: new Date().toISOString(),
-          footer: {
-            text: 'Doggy BOT • Verificación automática'
-          }
-        }]
-      });
     }
 
     // Return success response
