@@ -4,11 +4,11 @@ const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN!;
 const GUILD_ID = process.env.DISCORD_GUILD_ID!;
 const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 
-// Roles exactos de Discord
-const ROLES = [
-  { name: 'Doggy Holder', min: 1_000, max: 100_000 },
-  { name: 'Doggy OG', min: 100_000, max: 500_000 },
-  { name: 'Doggy Maxi', min: 500_000, max: 1_000_000 },
+// Roles de Holder (nuevos)
+const HOLDER_ROLES = [
+  { name: 'Believer', min: 1_000_000, max: 3_000_000 },
+  { name: 'Ballenita', min: 3_000_000, max: 6_000_000 },
+  { name: 'Doggyllonario', min: 6_000_000, max: 10_000_000 },
 ];
 
 // Discord API helper
@@ -79,11 +79,11 @@ export async function POST(request: NextRequest) {
     const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
     const balance = await getTokenBalance(wallet, DOGGY_MINT);
 
-    console.log(`💎 Balance: ${balance} DOGGY`);
+    console.log(`💎 Balance: ${balance.toLocaleString()} DOGGY`);
 
-    // Determine role
+    // Determine role based on holdings
     let role = null;
-    for (const r of ROLES) {
+    for (const r of HOLDER_ROLES) {
       if (balance >= r.min && balance < r.max) {
         role = r.name;
         break;
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     if (!role) {
       return NextResponse.json({ 
-        error: 'No tienes suficientes DOGGY (mínimo 1,000)',
+        error: `Necesitas mínimo 1M DOGGY para obtener un rol. Tienes: ${balance.toLocaleString()} DOGGY`,
         balance 
       }, { status: 400 });
     }
@@ -103,12 +103,12 @@ export async function POST(request: NextRequest) {
 
     if (!targetRole) {
       return NextResponse.json({ 
-        error: `Rol "${role}" no encontrado en Discord. Roles disponibles: ${roles.map((r: any) => r.name).join(', ')}` 
+        error: `Rol "${role}" no encontrado en Discord` 
       }, { status: 404 });
     }
 
     // Remove old holder roles
-    for (const r of ROLES) {
+    for (const r of HOLDER_ROLES) {
       const oldRole = roles.find((ro: any) => ro.name === r.name);
       if (oldRole) {
         try {
