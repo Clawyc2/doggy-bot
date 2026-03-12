@@ -295,6 +295,19 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Assigned burn role ${burnRole.name} to ${discordId}`);
     }
 
+    // Register wallet for snapshot (NEW - does not break anything)
+    try {
+      await fetch(`${process.env.NEXTAUTH_URL || 'https://doggy-holder-verify-peach.vercel.app'}/api/registry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discordId, wallet }),
+      });
+      console.log(`✅ Wallet registered for snapshot`);
+    } catch (e) {
+      console.error('⚠️ Could not register wallet (non-critical):', e);
+      // Don't fail the request if registry fails
+    }
+
     // Return success response
     return NextResponse.json({ 
       success: true,
