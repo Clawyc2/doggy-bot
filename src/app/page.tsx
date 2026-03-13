@@ -36,7 +36,7 @@ export default function Home() {
   const [assignedHolderRole, setAssignedHolderRole] = useState('');
   const [assignedBurnRole, setAssignedBurnRole] = useState('');
   const [showWalletMenu, setShowWalletMenu] = useState(false);
-  const [forceShowConnect, setForceShowConnect] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const walletMenuRef = useRef<HTMLDivElement>(null);
   
   // Detect if mobile
@@ -100,8 +100,10 @@ export default function Home() {
   // Fetch DOGGY balance when wallet connects
   useEffect(() => {
     if (connected && publicKey) {
-      setForceShowConnect(false); // resetear al conectar
+      setIsConnected(true);
       fetchBalance();
+    } else if (!connected) {
+      setIsConnected(false);
     }
   }, [connected, publicKey]);
 
@@ -277,6 +279,7 @@ export default function Home() {
       console.error('Disconnect error:', err);
       disconnect(); // forzar de todas formas
     } finally {
+      setIsConnected(false); // forzar desconectado inmediatamente
       setShowWalletMenu(false);
       setBalance(null);
       setError(null);
@@ -284,7 +287,6 @@ export default function Home() {
       setAssignedHolderRole('');
       setAssignedBurnRole('');
       setBurnedBalance(null);
-      setForceShowConnect(true); // forzar que aparezca el botón de conectar
     }
   };
 
@@ -303,7 +305,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col items-center justify-center p-8 relative">
       {/* Wallet Button (Top Right) */}
-      {connected && publicKey && (
+      {isConnected && publicKey && (
         <div className="fixed top-4 right-4 z-50" ref={walletMenuRef}>
           <button
             onClick={() => setShowWalletMenu(!showWalletMenu)}
@@ -369,7 +371,7 @@ export default function Home() {
         )}
 
         {/* Step 1: Connect Wallet */}
-        {verifying && (!connected || forceShowConnect) && !success && (
+        {verifying && !isConnected && !success && (
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 text-center mb-6">
             <h3 className="text-xl font-bold text-white mb-2">Paso 1: Conectar Wallet</h3>
             <p className="text-gray-400 mb-6">Conecta la wallet que tiene tus DOGGY</p>
@@ -397,7 +399,8 @@ export default function Home() {
         )}
 
         {/* Step 2: Show Balance */}
-        {verifying && connected && (
+        {/* Step 2: Show Balance */}
+        {verifying && isConnected && (
           <div className="space-y-6">
             {/* Loading */}
             {loading && (
