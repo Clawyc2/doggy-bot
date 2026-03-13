@@ -45,10 +45,19 @@ export default function Home() {
   const handleConnectWallet = async () => {
     try {
       if (isMobile) {
-        // On mobile: Use deep link to open Phantom app with current URL
-        const redirectUrl = encodeURIComponent(window.location.href);
-        const phantomDeepLink = `https://phantom.app/ul/browse/${redirectUrl}`;
-        window.location.href = phantomDeepLink;
+        // On mobile: Use Solana Mobile protocol to open wallet app
+        // The mobile adapter handles the deep link and redirect automatically
+        try {
+          // Try to connect via mobile adapter first
+          await connect();
+        } catch (mobileError: any) {
+          // If no wallet found, show instructions
+          console.log('Mobile wallet not found, showing instructions');
+          // Fallback: Direct deep link to Phantom
+          const currentUrl = window.location.href;
+          const phantomUrl = `https://phantom.app/ul/v1/connect?dapp_url=${encodeURIComponent(currentUrl)}&redirect_link=${encodeURIComponent(currentUrl)}`;
+          window.location.href = phantomUrl;
+        }
       } else {
         // On desktop: Open modal
         setVisible(true);
