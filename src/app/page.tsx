@@ -21,7 +21,7 @@ const BURN_ROLES = [
 ];
 
 export default function Home() {
-  const { publicKey, connected, signMessage, disconnect, connect } = useWallet();
+  const { publicKey, connected, signMessage, disconnect, connect, select, wallets } = useWallet();
   const { connection } = useConnection();
   const { setVisible } = useWalletModal();
   const [discordId, setDiscordId] = useState<string>('');
@@ -45,14 +45,14 @@ export default function Home() {
   const handleConnectWallet = async () => {
     try {
       if (isMobile) {
-        // On mobile: Use Phantom Universal Link to connect
-        const currentUrl = window.location.href;
-        const dappUrl = encodeURIComponent(currentUrl);
-        const redirectLink = encodeURIComponent(currentUrl);
-        
-        // Use Phantom Universal Link for mobile wallet connection
-        const phantomUniversalLink = `https://phantom.app/ul/v1/connect?dapp_url=${dappUrl}&redirect_link=${redirectLink}`;
-        window.location.href = phantomUniversalLink;
+        // On mobile: Use wallet adapter which handles mobile protocol
+        // Find mobile wallet adapter and select it
+        const mobileWallet = wallets.find(w => w.name === 'Mobile');
+        if (mobileWallet) {
+          select(mobileWallet.name);
+        }
+        // Connect will trigger mobile wallet app
+        await connect();
       } else {
         // On desktop: Open modal
         setVisible(true);
