@@ -45,11 +45,11 @@ export default function Home() {
   const handleConnectWallet = async () => {
     try {
       if (isMobile) {
-        // Phantom deep link — abre Phantom y regresa a esta URL al conectar
+        // Abrir esta misma URL dentro del Phantom browser
         const currentUrl = encodeURIComponent(window.location.href);
-        const appUrl = encodeURIComponent(window.location.origin);
-        const phantomDeepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${currentUrl}&cluster=mainnet-beta`;
-        window.location.href = phantomDeepLink;
+        const refUrl = encodeURIComponent(window.location.origin);
+        const phantomBrowserLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${refUrl}`;
+        window.location.href = phantomBrowserLink;
       } else {
         // On desktop: Open modal
         setVisible(true);
