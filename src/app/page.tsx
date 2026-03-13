@@ -52,13 +52,18 @@ export default function Home() {
   const handleConnectWallet = async () => {
     try {
       if (isPhantomBrowser) {
-        // Dentro del Phantom browser — conectar directo sin modal
+        // Dentro del Phantom browser — conectar directo con window.solana
+        // NO usar el adapter porque puede estar en estado inconsistente después de disconnect
         const provider = (window as any).solana;
-        const resp = await provider.connect();
-        console.log('✅ Connected via Phantom browser:', resp.publicKey.toString());
-        // El wallet adapter detecta window.solana automáticamente
-        // pero por si acaso forzamos la conexión también via adapter
-        await connect();
+        if (provider && provider.connect) {
+          const resp = await provider.connect();
+          console.log('✅ Connected via Phantom browser:', resp.publicKey.toString());
+          // Forzar actualización del estado
+          setIsConnected(true);
+        } else {
+          console.error('❌ Phantom provider not available');
+          setError('Phantom no está disponible. Intenta recargar la página.');
+        }
       } else if (isMobile) {
         // Mobile normal — abrir en Phantom browser
         const currentUrl = encodeURIComponent(window.location.href);
