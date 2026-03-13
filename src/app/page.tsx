@@ -45,9 +45,11 @@ export default function Home() {
   const handleConnectWallet = async () => {
     try {
       if (isMobile) {
-        // On mobile: Use wallet adapter which handles mobile protocol
-        // Connect directly - adapter will handle mobile protocol
-        await connect();
+        // Phantom deep link — abre Phantom y regresa a esta URL al conectar
+        const currentUrl = encodeURIComponent(window.location.href);
+        const appUrl = encodeURIComponent(window.location.origin);
+        const phantomDeepLink = `https://phantom.app/ul/v1/connect?app_url=${appUrl}&redirect_link=${currentUrl}&cluster=mainnet-beta`;
+        window.location.href = phantomDeepLink;
       } else {
         // On desktop: Open modal
         setVisible(true);
@@ -344,7 +346,7 @@ export default function Home() {
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M21 12a9 9 0 11-9 9 9 9 01-9-9 9 9 009-9zm-9 13a1 1 0 100-2 1 1 0 000 2zm0-6a1 1 0 100-2 1 1 0 000 2z"/>
                   </svg>
-                  Conectar Phantom
+                  Abrir Phantom
                 </button>
               ) : (
                 // Desktop: Use standard modal
