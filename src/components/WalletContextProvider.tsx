@@ -4,6 +4,7 @@ import { FC, ReactNode, useMemo } from "react";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { SolanaMobileWalletAdapter } from "@solana-mobile/wallet-adapter-mobile";
 
 require("@solana/wallet-adapter-react-ui/styles.css");
 
@@ -25,6 +26,14 @@ export const WalletContextProvider: FC<Props> = ({ children }) => {
   
   const wallets = useMemo(
     () => [
+      // Mobile wallet adapter - handles deep links automatically
+      new SolanaMobileWalletAdapter({
+        appIdentity: {
+          name: 'DOGGY Holder Verify',
+          uri: 'https://doggy-bot.vercel.app',
+        },
+      }),
+      // Desktop wallets
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ],
