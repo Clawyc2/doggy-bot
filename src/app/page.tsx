@@ -261,17 +261,40 @@ export default function Home() {
 
   const holderRole = getHolderRole();
 
-  const handleDisconnect = () => {
-    disconnect();
-    setShowWalletMenu(false);
-    setBalance(null);
-    setError(null);
-    setSuccess(false);
+  const handleDisconnect = async () => {
+    try {
+      // Si estamos dentro del Phantom browser, desconectar también window.solana
+      if (isPhantomBrowser) {
+        const provider = (window as any).solana;
+        if (provider?.disconnect) {
+          await provider.disconnect();
+        }
+      }
+      disconnect();
+    } catch (err) {
+      console.error('Disconnect error:', err);
+      disconnect(); // forzar de todas formas
+    } finally {
+      setShowWalletMenu(false);
+      setBalance(null);
+      setError(null);
+      setSuccess(false);
+      setAssignedHolderRole('');
+      setAssignedBurnRole('');
+      setBurnedBalance(null);
+    }
   };
 
-  const handleChangeWallet = () => {
-    setVisible(true);
-    setShowWalletMenu(false);
+  const handleChangeWallet = async () => {
+    if (isPhantomBrowser) {
+      // Dentro de Phantom browser: desconectar y mostrar instrucciones
+      await handleDisconnect();
+      setError('Para cambiar de cuenta: ve a Phantom → Ajustes → Cambiar cuenta. Luego toca "Conectar Wallet" de nuevo.');
+    } else {
+      // Desktop y mobile normal — modal normal, NO TOCAR
+      setVisible(true);
+      setShowWalletMenu(false);
+    }
   };
 
   return (
@@ -307,7 +330,7 @@ export default function Home() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
-                Cambiar wallet
+                {isPhantomBrowser ? 'Cambiar cuenta' : 'Cambiar wallet'}
               </button>
               <button
                 onClick={handleDisconnect}
