@@ -27,6 +27,7 @@ export default function Home() {
   const [discordId, setDiscordId] = useState<string>('');
   const [channelId, setChannelId] = useState<string>('');
   const [balance, setBalance] = useState<number | null>(null);
+  const [burnedBalance, setBurnedBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [assigningRole, setAssigningRole] = useState(false);
@@ -214,6 +215,7 @@ export default function Home() {
         setSuccess(true);
         setAssignedHolderRole(result.holderRole || '');
         setAssignedBurnRole(result.burnRole || '');
+        setBurnedBalance(result.burnedBalance || 0);
       } else {
         setError(result.error || 'Error al asignar rol');
         setAssigningRole(false);
@@ -419,8 +421,24 @@ export default function Home() {
                   
                   {!assignedBurnRole && (
                     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                      <p className="text-gray-400 text-sm">🔥 No has quemado DOGGY</p>
-                      <p className="text-gray-500 text-xs mt-2">Quema DOGGY para obtener roles de burner</p>
+                      {burnedBalance !== null && burnedBalance > 0 ? (
+                        <>
+                          <p className="text-orange-400 text-sm">🔥 Has quemado: <span className="font-bold text-white">{burnedBalance.toLocaleString()} DOGGY</span></p>
+                          <p className="text-gray-400 text-xs mt-2">
+                            Necesitas <span className="text-orange-400 font-bold">10,000 DOGGY</span> quemados para obtener el rol Bronce
+                          </p>
+                          <p className="text-gray-500 text-xs mt-1">
+                            Te faltan <span className="text-white font-bold">{(10_000 - burnedBalance).toLocaleString()} DOGGY</span>
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-gray-400 text-sm">🔥 No has quemado DOGGY</p>
+                          <p className="text-gray-500 text-xs mt-2">
+                            Quema DOGGY para obtener roles de burner (mínimo <span className="text-orange-400 font-bold">10,000</span>)
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
