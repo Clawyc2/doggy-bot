@@ -9,9 +9,10 @@ const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
 
 const HOLDER_ROLES = [
   { name: 'Camaroncin', id: '1481187002991906947', min: 1_000, max: 900_000, emoji: '🦐' },
-  { name: 'Believer', id: '1481092832088424621', min: 1_000_000, max: 3_000_000, emoji: '💎' },
+  { name: 'Believer', id: '1481092832088424621', min: 1_000_000, max: 3_000_000, emoji: '🫡' },
   { name: 'Ballenita', id: '1481092950191767733', min: 3_000_000, max: 6_000_000, emoji: '🐋' },
-  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 100_000_000, emoji: '🚀' },
+  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 9_900_000, emoji: '🤑' },
+  { name: 'Ballena', id: '1481090976322687026', min: 10_000_000, max: Infinity, emoji: '🐳' },
 ];
 
 const BURN_ROLES = [
@@ -573,14 +574,28 @@ export default function Home() {
             {/* Roles Info */}
             {!success && !loading && (
               <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
-                <h3 className="text-lg font-bold mb-4" style={{color: 'white'}}>💎 Roles de Holder Disponibles</h3>
+                <h3 className="text-lg font-bold mb-4" style={{color: 'white'}}>💎 Roles de Holder</h3>
                 <div className="space-y-2 text-sm">
                   {HOLDER_ROLES.map((r) => (
                     <div key={r.name} className="flex justify-between items-center p-2 bg-gray-700/50 rounded">
                       <span style={{color: 'white'}}>{r.emoji} {r.name}</span>
                       <span className="text-blue-400 font-bold">
                         {r.min >= 1000000 ? `${r.min/1000000}M` : `${r.min/1000}K`}
-                        {r.max < 100000000 ? ` - ${r.max >= 1000000 ? `${r.max/1000000}M` : `${r.max/1000}K`}` : '+'}
+                        {r.max === Infinity ? ' +' : r.max >= 1000000 ? ` - ${(r.max/1000000)}M` : ` - ${r.max/1000}K`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <h3 className="text-lg font-bold mt-6 mb-4" style={{color: 'white'}}>🏅 Roles de Quemador</h3>
+                <p className="text-gray-400 text-xs mb-3">Para los que queman $DOGGY y se convierten en leyendas 🔥</p>
+                <div className="space-y-2 text-sm">
+                  {BURN_ROLES.map((r) => (
+                    <div key={r.name} className="flex justify-between items-center p-2 bg-gray-700/50 rounded">
+                      <span style={{color: 'white'}}>{r.emoji} {r.name}</span>
+                      <span className="text-orange-400 font-bold">
+                        {r.min >= 1000000 ? `${r.min/1000000}M` : `${r.min/1000}K`}
+                        {r.max === Infinity ? ' +' : r.max >= 1000000 ? ` - ${(r.max/1000000)}M` : ` - ${r.max/1000}K`}
                       </span>
                     </div>
                   ))}

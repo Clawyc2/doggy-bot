@@ -17,7 +17,8 @@ const HOLDER_ROLES = [
   { name: 'Camaroncin', id: '1481187002991906947', min: 1_000, max: 900_000 },
   { name: 'Believer', id: '1481092832088424621', min: 1_000_000, max: 3_000_000 },
   { name: 'Ballenita', id: '1481092950191767733', min: 3_000_000, max: 6_000_000 },
-  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 100_000_000 },
+  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 9_900_000 },
+  { name: 'Ballena', id: '1481090976322687026', min: 10_000_000, max: Infinity },
 ];
 
 // Roles de Burn con IDs directos
