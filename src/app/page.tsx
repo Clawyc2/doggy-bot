@@ -8,11 +8,11 @@ import { PublicKey } from "@solana/web3.js";
 const DOGGY_MINT = 'BS7HxRitaY5ipGfbek1nmatWLbaS9yoWRSEQzCb3pump';
 
 const HOLDER_ROLES = [
-  { name: 'Camaroncin', id: '1481187002991906947', min: 1_000, max: 900_000, emoji: '🦐' },
-  { name: 'Believer', id: '1481092832088424621', min: 1_000_000, max: 3_000_000, emoji: '🫡' },
-  { name: 'Ballenita', id: '1481092950191767733', min: 3_000_000, max: 6_000_000, emoji: '🐋' },
-  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 9_900_000, emoji: '🤑' },
-  { name: 'Ballena', id: '1481090976322687026', min: 10_000_000, max: Infinity, emoji: '🐳' },
+  { name: 'Camaroncin', id: '1481187002991906947', min: 1_000, max: 1_000_000, emoji: '' },
+  { name: 'Believer', id: '1481092832088424621', min: 1_000_000, max: 3_000_000, emoji: '' },
+  { name: 'Ballenita', id: '1481092950191767733', min: 3_000_000, max: 6_000_000, emoji: '' },
+  { name: 'Doggyllonario', id: '1481093065396453396', min: 6_000_000, max: 10_000_000, emoji: '' },
+  { name: 'Ballena', id: '1481090976322687026', min: 10_000_000, max: Infinity, emoji: '' },
 ];
 
 const BURN_ROLES = [
